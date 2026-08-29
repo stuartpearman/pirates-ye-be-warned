@@ -1,0 +1,212 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp   # VPN Proxy
+      - 5800:5800/tcp   # Firefox
+      - 8686:8686       # lidarr
+      - 8090:8090       # qbittorent
+      - 9696:9696       # prowlarr
+      
+      # Jellyfin
+      # - 3000:3000/tcp #firefox
+      # - 3000:3001/tcp #firefox
+    volumes:
+      - ./config/gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=wireguard
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_PROVIDER=protonvpn
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8090/api/v2/app/setPreferences 2>&1'
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:?set WIREGUARD_PRIVATE_KEY in .env}
+      - SERVER_COUNTRIES=United States
+      - HTTPPROXY=on
+    # user: 1000:1000
+
+    restart: unless-stopped
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=GB
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config/lidarr:/config
+      - ~/Shared/Media/Music:/music
+      - ~/Shared/Media/Downloads:/downloads
+    restart: unless-stopped
+    network_mode: service:gluetun
+    depends_on:
+      # - prowlarr
+      - qbittorrent
+      - gluetun
+    # user: 1000:1000
+
+  prowlarr:
+    image: linuxserver/prowlarr:develop
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=GB
+    volumes:
+      - ./config/prowlarr:/config
+    restart: unless-stopped
+    network_mode: service:gluetun
+    depends_on:
+      - qbittorrent
+      - gluetun
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=United States/Detroit
+      - UMASK_SET=022
+      - WEBUI_PORT=8090
+    volumes:
+      - ./config/qbittorrent:/config
+      - ~/Shared/Media/Downloads:/downloads
+      # - ~/Shared/Media/Downloads/tv:/tvdownloads
+      # - ~/Shared/Media/Downloads/movies:/filmdownloads
+      # - ~/Shared/Media/Downloads/music:/musicdownloads
+    depends_on:
+      - gluetun
+    network_mode: service:gluetun
+    restart: unless-stopped
+    # user: 1000:1000
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    ports:  
+      - 8096:8096
+      - 8920:8920
+      - 7359:7359/udp
+      - 1900:1900/udp
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      - JELLYFIN_PublishedServerUrl=http://${JELLYFIN_SUBDOMAIN:-jelly}.${LOCAL_DOMAIN:-example-pi.local}
+    volumes:
+      - ./config/jellyfin:/config
+      - ~/Shared/Media/Music:/data/music
+      - ~/Shared/Media/Movies:/data/movies
+    restart: unless-stopped
+
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    ports:
+      - 32400:32400/tcp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Detroit
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM:-}
+      - ADVERTISE_IP=http://${PLEX_SUBDOMAIN:-plex}.${LOCAL_DOMAIN:-example-pi.local}
+    volumes:
+      - ./config/plex:/config
+      - ~/Shared/Media/Music:/data/music
+      - ~/Shared/Media/Movies:/data/movies
+    restart: unless-stopped
+
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - 8080:80
+    volumes:
+      - ~/Shared/Media:/srv
+      - ./config/filebrowser/database:/database
+      - ./config/filebrowser/config:/config
+
+  nextcloud:
+    image: nextcloud:apache
+    container_name: nextcloud
+    ports:
+      - 8081:80
+    environment:
+      - SQLITE_DATABASE=nextcloud
+      - NEXTCLOUD_ADMIN_USER=${SERVICE_USERNAME:?set SERVICE_USERNAME in .env}
+      - NEXTCLOUD_ADMIN_PASSWORD=${SERVICE_PASSWORD:?set SERVICE_PASSWORD in .env}
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost example-pi.local ${NEXTCLOUD_SUBDOMAIN:-nextcloud}.${LOCAL_DOMAIN:-example-pi.local}
+      - TRUSTED_PROXIES=caddy
+      - OVERWRITEPROTOCOL=http
+    volumes:
+      - ./config/nextcloud:/var/www/html
+      - ~/Shared:/shared:rw
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - 80:80
+    volumes:
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./config/caddy/data:/data
+      - ./config/caddy/config:/config
+    depends_on:
+      - gluetun
+      - jellyfin
+      - plex
+      - nextcloud
+      - homepage
+    restart: unless-stopped
+
+  localdns:
+    image: coredns/coredns:1.11.3
+    container_name: localdns
+    command: -conf /etc/coredns/Corefile
+    ports:
+      - 53:53/udp
+      - 53:53/tcp
+    volumes:
+      - ./config/coredns:/etc/coredns:ro
+    restart: unless-stopped
+
+  frpc:
+    image: snowdreamtech/frpc:0.61.1
+    container_name: frpc
+    profiles:
+      - cloud-client
+    network_mode: host
+    volumes:
+      - ./generated/frp/frpc.toml:/etc/frp/frpc.toml:ro
+    command: -c /etc/frp/frpc.toml
+    restart: unless-stopped
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_SUBDOMAIN:-home}.${LOCAL_DOMAIN:-example-pi.local},example-pi.local # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
+      PUID: 1000 # optional, your user id
+      PGID: 1000 # optional, your group id
+    ports:
+      - 3000:3000
+    volumes:
+      - /path/to/config:/app/config # Make sure your local config directory exists
+      - /var/run/docker.sock:/var/run/docker.sock:ro # optional, for docker integrations
+    restart: unless-stopped
+  

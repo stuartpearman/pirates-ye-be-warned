@@ -1,0 +1,26 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: cloud-caddy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./generated/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy/data:/data
+      - ./data/caddy/config:/config
+    depends_on:
+      - frps
+    restart: unless-stopped
+
+  frps:
+    image: snowdreamtech/frps:0.61.1
+    container_name: cloud-frps
+    command: -c /etc/frp/frps.toml
+    expose:
+      - "${FRP_HTTP_VHOST_PORT:-8080}"
+    ports:
+      - "${FRP_BIND_PORT:-7000}:${FRP_BIND_PORT:-7000}/tcp"
+    volumes:
+      - ./generated/frp/frps.toml:/etc/frp/frps.toml:ro
+    restart: unless-stopped

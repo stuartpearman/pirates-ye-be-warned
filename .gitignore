@@ -1,0 +1,6 @@
+.env
+config
+cloud-server/.env
+cloud-server/generated/
+generated/
+local/
