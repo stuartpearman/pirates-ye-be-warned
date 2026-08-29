@@ -11,6 +11,9 @@ generate_caddyfile() {
   local caddyfile="$ROOT_DIR/config/caddy/Caddyfile"
 
   mkdir -p "$(dirname "$caddyfile")"
+  if [[ -d "$caddyfile" ]]; then
+    rm -rf "$caddyfile"
+  fi
 
   cat > "$caddyfile" <<EOF
 {
@@ -51,10 +54,34 @@ http://*.$LOCAL_DOMAIN {
 EOF
 }
 
+generate_coredns_corefile() {
+  local corefile="$ROOT_DIR/config/coredns/Corefile"
+
+  mkdir -p "$(dirname "$corefile")"
+  if [[ -d "$corefile" ]]; then
+    rm -rf "$corefile"
+  fi
+
+  cat > "$corefile" <<'EOF'
+.:53 {
+	errors
+	log
+	hosts /etc/coredns/hosts {
+		fallthrough
+	}
+	forward . 1.1.1.1 8.8.8.8
+	cache 30
+}
+EOF
+}
+
 generate_coredns_hosts() {
   local coredns_hosts="$ROOT_DIR/config/coredns/hosts"
 
   mkdir -p "$(dirname "$coredns_hosts")"
+  if [[ -d "$coredns_hosts" ]]; then
+    rm -rf "$coredns_hosts"
+  fi
   printf '%s ' "$PI_LAN_IP" > "$coredns_hosts"
   local_hostnames | paste -sd ' ' - >> "$coredns_hosts"
   printf '\n' >> "$coredns_hosts"
@@ -230,6 +257,7 @@ configure_local_domains() {
   ensure_pi_lan_ip
 
   generate_caddyfile
+  generate_coredns_corefile
   generate_coredns_hosts
   generate_avahi_hosts
   generate_windows_hosts_script

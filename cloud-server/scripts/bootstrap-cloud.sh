@@ -40,9 +40,19 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-set -a
-source "$ENV_FILE"
-set +a
+while IFS= read -r line || [[ -n "$line" ]]; do
+  line="${line%$'\r'}"
+  [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ "$line" == *=* ]] || continue
+
+  key="${line%%=*}"
+  value="${line#*=}"
+  key="${key#${key%%[![:space:]]*}}"
+  key="${key%${key##*[![:space:]]}}"
+
+  [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+  export "$key=$value"
+done < "$ENV_FILE"
 
 PUBLIC_DOMAIN="${PUBLIC_DOMAIN:?set PUBLIC_DOMAIN in cloud-server/.env}"
 VPS_PUBLIC_IP="${VPS_PUBLIC_IP:-203.0.113.10}"
