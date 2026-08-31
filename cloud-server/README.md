@@ -67,6 +67,16 @@ Then run:
 ```bash
 scripts/bootstrap-cloud-client.sh
 docker compose --profile cloud-client up -d frpc
+docker compose --profile cloud-client restart frpc
+```
+
+The restart is required when `frpc` is already running because the generated TOML is bind-mounted, but the process does not reload it automatically.
+
+On the VPS, confirm Docker is publishing the direct Plex port after deployment:
+
+```bash
+docker compose ps frps
+docker compose port frps 32400
 ```
 
 ## Verification

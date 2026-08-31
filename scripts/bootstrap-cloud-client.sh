@@ -74,4 +74,5 @@ customDomains = ["$JELLYFIN_SUBDOMAIN.$PUBLIC_DOMAIN"]
 EOF
 
 echo "Generated $ROOT_DIR/generated/frp/frpc.toml"
-echo "Start or restart the tunnel client with: docker compose --profile cloud-client up -d frpc"
+echo "Start the tunnel client with: docker compose --profile cloud-client up -d frpc"
+echo "If frpc is already running, reload this config with: docker compose --profile cloud-client restart frpc"
