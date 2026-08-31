@@ -96,7 +96,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Detroit
-      - JELLYFIN_PublishedServerUrl=http://${JELLYFIN_SUBDOMAIN:-jelly}.${LOCAL_DOMAIN:-example-pi.local}
+      - JELLYFIN_PublishedServerUrl=http://${JELLYFIN_SUBDOMAIN:-jelly}-${LOCAL_DOMAIN:-example.local}
     volumes:
       - ./config/jellyfin:/config
       - ~/Shared/Media/Music:/data/music
@@ -121,7 +121,7 @@ services:
       - TZ=America/Detroit
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM:-}
-      - ADVERTISE_IP=http://${PLEX_SUBDOMAIN:-plex}.${LOCAL_DOMAIN:-example-pi.local}
+      - ADVERTISE_IP=${PLEX_ADVERTISE_IP:-https://${PLEX_SUBDOMAIN:-plex}.${PUBLIC_DOMAIN:-example.com},http://${PLEX_SUBDOMAIN:-plex}.${PUBLIC_DOMAIN:-example.com}:${PLEX_DIRECT_REMOTE_PORT:-32400},http://${FRP_SERVER_ADDR:-203.0.113.10}:${PLEX_DIRECT_REMOTE_PORT:-32400}}
     volumes:
       - ./config/plex:/config
       - ~/Shared/Media/Music:/data/music
@@ -149,7 +149,7 @@ services:
       - SQLITE_DATABASE=nextcloud
       - NEXTCLOUD_ADMIN_USER=${SERVICE_USERNAME:?set SERVICE_USERNAME in .env}
       - NEXTCLOUD_ADMIN_PASSWORD=${SERVICE_PASSWORD:?set SERVICE_PASSWORD in .env}
-      - NEXTCLOUD_TRUSTED_DOMAINS=localhost example-pi.local ${NEXTCLOUD_SUBDOMAIN:-nextcloud}.${LOCAL_DOMAIN:-example-pi.local}
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost ${LOCAL_DOMAIN:-example.local} ${NEXTCLOUD_SUBDOMAIN:-nextcloud}-${LOCAL_DOMAIN:-example.local} ${NEXTCLOUD_SUBDOMAIN:-nextcloud}.${PUBLIC_DOMAIN:-example.com}
       - TRUSTED_PROXIES=caddy
       - OVERWRITEPROTOCOL=http
     volumes:
@@ -200,7 +200,7 @@ services:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     environment:
-      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_SUBDOMAIN:-home}.${LOCAL_DOMAIN:-example-pi.local},example-pi.local # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_SUBDOMAIN:-home}-${LOCAL_DOMAIN:-example.local},${LOCAL_DOMAIN:-example.local} # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
       PUID: 1000 # optional, your user id
       PGID: 1000 # optional, your group id
     ports:

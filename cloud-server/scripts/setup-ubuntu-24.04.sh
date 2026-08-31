@@ -36,6 +36,7 @@ ufw allow OpenSSH
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow 7000/tcp
+ufw allow 32400/tcp
 
 echo "Docker is installed. Review UFW rules, then enable with: sudo ufw enable"
 echo "Next: copy cloud-server/.env.example to cloud-server/.env, edit it, then run cloud-server/scripts/bootstrap-cloud.sh"

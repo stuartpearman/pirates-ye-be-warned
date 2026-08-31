@@ -61,6 +61,7 @@ FRP_AUTH_TOKEN="${FRP_AUTH_TOKEN:?set FRP_AUTH_TOKEN in cloud-server/.env}"
 FRP_BIND_PORT="${FRP_BIND_PORT:-7000}"
 FRP_HTTP_VHOST_PORT="${FRP_HTTP_VHOST_PORT:-8080}"
 PLEX_SUBDOMAIN="${PLEX_SUBDOMAIN:-plex}"
+PLEX_DIRECT_REMOTE_PORT="${PLEX_DIRECT_REMOTE_PORT:-32400}"
 NEXTCLOUD_SUBDOMAIN="${NEXTCLOUD_SUBDOMAIN:-nextcloud}"
 JELLYFIN_SUBDOMAIN="${JELLYFIN_SUBDOMAIN:-jelly}"
 
@@ -115,6 +116,10 @@ Create DNS-only A records pointing to this VPS IP:
   $(printf '%s.%s' "$PLEX_SUBDOMAIN" "$PUBLIC_DOMAIN")       A  $VPS_PUBLIC_IP
   $(printf '%s.%s' "$NEXTCLOUD_SUBDOMAIN" "$PUBLIC_DOMAIN")  A  $VPS_PUBLIC_IP
   $(printf '%s.%s' "$JELLYFIN_SUBDOMAIN" "$PUBLIC_DOMAIN")    A  $VPS_PUBLIC_IP
+
+Direct Plex TCP access will listen on:
+  $(printf '%s.%s' "$PLEX_SUBDOMAIN" "$PUBLIC_DOMAIN"):$PLEX_DIRECT_REMOTE_PORT
+  $VPS_PUBLIC_IP:$PLEX_DIRECT_REMOTE_PORT
 
 Then configure and start the home frpc client with:
   scripts/bootstrap-cloud-client.sh

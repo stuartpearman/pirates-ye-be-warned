@@ -7,7 +7,7 @@ if [[ -z "${ROOT_DIR:-}" ]]; then
 fi
 
 init_domain_env() {
-  LOCAL_DOMAIN="${LOCAL_DOMAIN:-example-pi.local}"
+  LOCAL_DOMAIN="${LOCAL_DOMAIN:-example.local}"
   PI_LAN_IP="${PI_LAN_IP:-}"
   HOMEPAGE_SUBDOMAIN="${HOMEPAGE_SUBDOMAIN:-home}"
   LIDARR_SUBDOMAIN="${LIDARR_SUBDOMAIN:-lid}"
@@ -23,7 +23,15 @@ detect_lan_ip() {
 }
 
 fqdn() {
-  printf '%s.%s' "$1" "$LOCAL_DOMAIN"
+  printf '%s-%s.local' "$1" "$(local_base_label)"
+}
+
+local_base_label() {
+  printf '%s' "${LOCAL_DOMAIN%.local}"
+}
+
+mdns_alias() {
+  fqdn "$1"
 }
 
 local_hostnames() {
@@ -36,6 +44,17 @@ local_hostnames() {
     "$(fqdn "$NEXTCLOUD_SUBDOMAIN")" \
     "$(fqdn "$JELLYFIN_SUBDOMAIN")" \
     "$(fqdn "$PLEX_SUBDOMAIN")"
+}
+
+mdns_hostnames() {
+  local_hostnames
+}
+
+all_local_hostnames() {
+  {
+    local_hostnames
+    mdns_hostnames
+  } | awk '!seen[$0]++'
 }
 
 ensure_pi_lan_ip() {

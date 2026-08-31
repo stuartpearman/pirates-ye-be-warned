@@ -6,13 +6,17 @@ This directory contains the VPS side of the public tunnel for the home services.
 
 ```text
 Internet -> DNS example.com -> VPS Caddy :80/:443 -> frps HTTP vhost :8080 -> frpc at home -> local services
+Internet -> DNS/IP :32400 -> VPS frps TCP proxy -> frpc at home -> home Plex :32400
 ```
 
 Public services configured by default:
 
-- `plex.example.com` -> home Plex `127.0.0.1:32400`
+- `https://plex.example.com` -> home Plex `127.0.0.1:32400` through Caddy HTTPS
+- `plex.example.com:32400` or `VPS_PUBLIC_IP:32400` -> home Plex `127.0.0.1:32400` through FRP TCP
 - `nextcloud.example.com` -> home Nextcloud `127.0.0.1:8081`
 - `jelly.example.com` -> home Jellyfin `127.0.0.1:8096`
+
+Caddy and FRP are both needed for the HTTPS path. Caddy handles public certificates and host routing on `80`/`443`; FRP carries the request from the VPS back to the home server. Direct Plex port access uses FRP TCP directly and bypasses Caddy.
 
 ## DNS
 
@@ -55,6 +59,7 @@ On the home server, set these values in the repo root `.env`:
 PUBLIC_DOMAIN=example.com
 FRP_SERVER_ADDR=222.3.444.55
 FRP_AUTH_TOKEN=same-token-as-cloud
+PLEX_ADVERTISE_IP=https://plex.example.com,http://plex.example.com:32400,http://222.3.444.55:32400
 ```
 
 Then run:
@@ -77,6 +82,8 @@ From anywhere after DNS propagates and the home client is connected:
 
 ```bash
 curl -I https://plex.example.com
+curl -I http://plex.example.com:32400
+curl -I http://203.0.113.10:32400
 curl -I https://nextcloud.example.com
 curl -I https://jelly.example.com
 ```

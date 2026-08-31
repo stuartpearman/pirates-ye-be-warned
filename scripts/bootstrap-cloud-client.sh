@@ -31,6 +31,7 @@ FRP_AUTH_TOKEN="${FRP_AUTH_TOKEN:?set FRP_AUTH_TOKEN in .env to match cloud-serv
 PLEX_SUBDOMAIN="${PLEX_SUBDOMAIN:-plex}"
 NEXTCLOUD_SUBDOMAIN="${NEXTCLOUD_SUBDOMAIN:-nextcloud}"
 JELLYFIN_SUBDOMAIN="${JELLYFIN_SUBDOMAIN:-jelly}"
+PLEX_DIRECT_REMOTE_PORT="${PLEX_DIRECT_REMOTE_PORT:-32400}"
 
 mkdir -p "$ROOT_DIR/generated/frp"
 
@@ -49,6 +50,13 @@ type = "http"
 localIP = "127.0.0.1"
 localPort = 32400
 customDomains = ["$PLEX_SUBDOMAIN.$PUBLIC_DOMAIN"]
+
+[[proxies]]
+name = "plex-direct"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 32400
+remotePort = $PLEX_DIRECT_REMOTE_PORT
 
 [[proxies]]
 name = "nextcloud"

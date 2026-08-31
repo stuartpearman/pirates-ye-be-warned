@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/lib/domain.sh"
 configure_nextcloud() {
   local mounts_file
   local attempt
+  local trusted_index=0
 
   wait_for_http Nextcloud "$NEXTCLOUD_URL/status.php" 120
 
@@ -27,7 +28,16 @@ configure_nextcloud() {
 
   compose exec -T -u www-data nextcloud php occ app:enable files_external >/dev/null
 
-  compose exec -T -u www-data nextcloud php occ config:system:set trusted_domains 2 --value="$(fqdn "$NEXTCLOUD_SUBDOMAIN")" >/dev/null
+  compose exec -T -u www-data nextcloud php occ config:system:delete trusted_domains >/dev/null 2>&1 || true
+  compose exec -T -u www-data nextcloud php occ config:system:set trusted_domains "$trusted_index" --value=localhost >/dev/null
+  trusted_index=$((trusted_index + 1))
+  compose exec -T -u www-data nextcloud php occ config:system:set trusted_domains "$trusted_index" --value="$LOCAL_DOMAIN" >/dev/null
+  trusted_index=$((trusted_index + 1))
+  compose exec -T -u www-data nextcloud php occ config:system:set trusted_domains "$trusted_index" --value="$(fqdn "$NEXTCLOUD_SUBDOMAIN")" >/dev/null
+  trusted_index=$((trusted_index + 1))
+  if [[ -n "${PUBLIC_DOMAIN:-}" ]]; then
+    compose exec -T -u www-data nextcloud php occ config:system:set trusted_domains "$trusted_index" --value="$NEXTCLOUD_SUBDOMAIN.$PUBLIC_DOMAIN" >/dev/null
+  fi
   compose exec -T -u www-data nextcloud php occ config:system:set overwrite.cli.url --value="http://$(fqdn "$NEXTCLOUD_SUBDOMAIN")" >/dev/null
   compose exec -T -u www-data nextcloud php occ config:system:set overwriteprotocol --value=http >/dev/null
 
